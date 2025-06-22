@@ -1,0 +1,1 @@
+# projeto-pratico-mensageria-scd-2025-01

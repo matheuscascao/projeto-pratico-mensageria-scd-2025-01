@@ -117,19 +117,50 @@ POST http://localhost:8080/orders
 
 ```json
 {
-  "items": ["item1", "item2", "item3"]
-}
+    "items": [
+        { "sku": "SAMS-001", "quantity": 1 },
+        { "sku": "MOUS-003", "quantity": 2 }
+    ]
+}'
+```
+
+**Exemplo via Curl com mensagem válida:**
+
+```sh
+curl -X POST http://localhost:8080/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      { "sku": "SAMS-001", "quantity": 1 },
+      { "sku": "MOUS-003", "quantity": 2 }
+    ]
+  }'
+```
+
+**Exemplo via Curl com mensagem inválida:**
+
+```sh
+curl -X POST http://localhost:8080/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      { "sku": "SAMS-001", "quantity": 999 },
+      { "sku": "MOUS-003", "quantity": 999 }
+    ]
+  }'
 ```
 
 ---
 
-### ✅ Esperado:
+### ✅ Esperado para a mensagem válida:
 
 1. Order-Service vai responder:
-   ✅ "Order enviado com sucesso! ID: xxx"
+   "Order enviado com sucesso! ID: xxx"
 
 2. Inventory-Service vai logar no terminal:
-   ✅ Mensagem recebida + status (success ou failed)
+   Mensagem recebida + status (success ou failed)
 
 3. Notification-Service vai logar no terminal:
-   ✅ Notificação do evento de inventário
+   Notificação do evento de inventário
+
+4. No banco de dados, deve-se observar uma redução no "quantity" de cada item, na tabela items.

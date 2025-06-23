@@ -8,8 +8,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 @Component
 public class InventoryConsumer {
 
@@ -43,35 +41,43 @@ public class InventoryConsumer {
                 String sku = itemNode.get("sku").asText();
                 int quantity = itemNode.get("quantity").asInt();
                 
-                Optional<Item> itemOpt = itemRepository.findBySku(sku);
-                if (!itemOpt.isPresent()) {
+                if (!itemRepository.findBySku(sku).isPresent()) {
                     throw new RuntimeException("Item não encontrado: " + sku);
                 }
-                if (itemOpt.get().getQuantity() < quantity) {
+                
+                Boolean hasStock = itemRepository.hasEnoughStock(sku, quantity);
+                if (hasStock == null || !hasStock) {
+                    Integer currentQuantity = itemRepository.getCurrentQuantity(sku).orElse(0);
                     throw new RuntimeException("Quantidade insuficiente para " + sku + 
-                        " (disponível: " + itemOpt.get().getQuantity() + 
-                        ", solicitado: " + quantity + ")");
+                        " (disponível: " + currentQuantity + ", solicitado: " + quantity + ")");
                 }
             }
             
+            // Lógica de redução de estoque feita de forma atômica, para evitar BOS de concorrência, assim como a verificação de estoque.
+            // Essa lógica é desnecessáriam, pois utilizamos apenas um consumidor. Entretanto, é interessante utilizarmos isso.
             for (JsonNode itemNode : itemsArray) {
                 String sku = itemNode.get("sku").asText();
                 int quantity = itemNode.get("quantity").asInt();
                 
-                Item item = itemRepository.findBySku(sku).get();
-                item.setQuantity(item.getQuantity() - quantity);
-                itemRepository.save(item);
+                int updatedRows = itemRepository.reduceQuantityAtomically(sku, quantity);
+                
+                if (updatedRows == 0) {
+                    Integer currentQuantity = itemRepository.getCurrentQuantity(sku).orElse(0);
+                    throw new RuntimeException("Falha atômica para " + sku + 
+                        " (disponível: " + currentQuantity + ", solicitado: " + quantity + ")");
+                }
+                
+                System.out.println("Reduzido atomicamente: " + sku + " (-" + quantity + ")");
             }
             
             ProcessedMessage processedMessage = new ProcessedMessage(orderId, "success", 
-                "Inventário reduzido com sucesso");
+                "Inventário reduzido atomicamente com sucesso");
             processedMessageRepository.save(processedMessage);
             
-            System.out.println("Inventário reduzido para pedido: " + orderId);
+            System.out.println("Inventário reduzido atomicamente para pedido: " + orderId);
             
-            // 📤 Envia evento de sucesso
             String inventoryEvent = String.format(
-                "{\"orderId\": \"%s\", \"status\": \"success\", \"details\": \"Inventário reduzido com sucesso\"}", 
+                "{\"orderId\": \"%s\", \"status\": \"success\", \"details\": \"Inventário reduzido atomicamente\"}", 
                 orderId
             );
             kafkaTemplate.send("inventory-events", inventoryEvent);
@@ -80,6 +86,8 @@ public class InventoryConsumer {
         } catch (Exception e) {
             System.err.println("Erro ao processar pedido: " + e.getMessage());
             String orderId = extractOrderId(message);
+            
+            // 📤 Envia evento de falha
             String inventoryEvent = String.format(
                 "{\"orderId\": \"%s\", \"status\": \"failed\", \"details\": \"%s\"}", 
                 orderId, e.getMessage()

@@ -130,11 +130,11 @@ POST http://localhost:8080/orders
 
 ```json
 {
-    "items": [
-        { "sku": "SAMS-001", "quantity": 1 },
-        { "sku": "MOUS-003", "quantity": 2 }
-    ]
-}'
+  "items": [
+    { "sku": "SAMS-001", "quantity": 1 },
+    { "sku": "MOUS-003", "quantity": 2 }
+  ]
+}
 ```
 
 **Exemplo via Curl com mensagem válida:**

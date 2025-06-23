@@ -1,5 +1,4 @@
-
-package com.example.notificationservice;
+package com.ufg.notificationservice;
 
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

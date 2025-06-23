@@ -1,4 +1,4 @@
-package com.example.notificationservice;
+package com.ufg.notificationservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

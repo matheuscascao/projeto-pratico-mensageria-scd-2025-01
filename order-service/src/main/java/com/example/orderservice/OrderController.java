@@ -1,5 +1,4 @@
-
-package com.example.orderservice;
+package com.ufg.orderservice;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -1,5 +1,4 @@
-
-package com.example.inventoryservice;
+package com.ufg.inventoryservice;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;

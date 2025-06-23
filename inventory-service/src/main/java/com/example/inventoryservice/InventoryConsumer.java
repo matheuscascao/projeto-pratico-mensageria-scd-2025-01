@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -24,6 +25,7 @@ public class InventoryConsumer {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @KafkaListener(topics = "orders", groupId = "inventory-group")
+    @Transactional
     public void consume(String message) {
         System.out.println("Inventory recebeu: " + message);
         
@@ -34,79 +36,57 @@ public class InventoryConsumer {
             
             if (processedMessageRepository.existsById(orderId)) {
                 System.out.println("Pedido já processado (idempotência): " + orderId);
-                return; // Pula o processamento
+                return;
             }
             
-            boolean allItemsAvailable = true;
-            StringBuilder errorMessage = new StringBuilder();
-            
-            // Verifica se todos os itens estão disponíveis
             for (JsonNode itemNode : itemsArray) {
                 String sku = itemNode.get("sku").asText();
                 int quantity = itemNode.get("quantity").asInt();
                 
                 Optional<Item> itemOpt = itemRepository.findBySku(sku);
                 if (!itemOpt.isPresent()) {
-                    allItemsAvailable = false;
-                    errorMessage.append("Item não encontrado: ").append(sku).append("; ");
-                } else if (itemOpt.get().getQuantity() < quantity) {
-                    allItemsAvailable = false;
-                    errorMessage.append("Quantidade insuficiente para ").append(sku)
-                              .append(" (disponível: ").append(itemOpt.get().getQuantity())
-                              .append(", solicitado: ").append(quantity).append("); ");
+                    throw new RuntimeException("Item não encontrado: " + sku);
+                }
+                if (itemOpt.get().getQuantity() < quantity) {
+                    throw new RuntimeException("Quantidade insuficiente para " + sku + 
+                        " (disponível: " + itemOpt.get().getQuantity() + 
+                        ", solicitado: " + quantity + ")");
                 }
             }
             
-            String status;
-            String details = "";
-            
-            if (allItemsAvailable) {
-                // Reduz as quantidades
-                for (JsonNode itemNode : itemsArray) {
-                    String sku = itemNode.get("sku").asText();
-                    int quantity = itemNode.get("quantity").asInt();
-                    
-                    Item item = itemRepository.findBySku(sku).get();
-                    item.setQuantity(item.getQuantity() - quantity);
-                    itemRepository.save(item);
-                }
-                status = "success";
-                details = "Inventário reduzido com sucesso";
-                System.out.println("Inventário reduzido para pedido: " + orderId);
-            } else {
-                status = "failed";
-                details = errorMessage.toString();
-                System.out.println("Falha no inventário para pedido: " + orderId + " - " + details);
+            for (JsonNode itemNode : itemsArray) {
+                String sku = itemNode.get("sku").asText();
+                int quantity = itemNode.get("quantity").asInt();
+                
+                Item item = itemRepository.findBySku(sku).get();
+                item.setQuantity(item.getQuantity() - quantity);
+                itemRepository.save(item);
             }
             
-            ProcessedMessage processedMessage = new ProcessedMessage(orderId, status, details);
+            ProcessedMessage processedMessage = new ProcessedMessage(orderId, "success", 
+                "Inventário reduzido com sucesso");
             processedMessageRepository.save(processedMessage);
             
-            String inventoryEvent = String.format(
-                "{\"orderId\": \"%s\", \"status\": \"%s\", \"details\": \"%s\"}", 
-                orderId, status, details
-            );
+            System.out.println("Inventário reduzido para pedido: " + orderId);
             
+            // 📤 Envia evento de sucesso
+            String inventoryEvent = String.format(
+                "{\"orderId\": \"%s\", \"status\": \"success\", \"details\": \"Inventário reduzido com sucesso\"}", 
+                orderId
+            );
             kafkaTemplate.send("inventory-events", inventoryEvent);
             System.out.println("Inventory publicou: " + inventoryEvent);
             
         } catch (Exception e) {
             System.err.println("Erro ao processar pedido: " + e.getMessage());
             String orderId = extractOrderId(message);
-            
-            try {
-                ProcessedMessage processedMessage = new ProcessedMessage(orderId, "failed", 
-                    "Erro no processamento: " + e.getMessage());
-                processedMessageRepository.save(processedMessage);
-            } catch (Exception saveError) {
-                System.err.println("Erro ao salvar processamento: " + saveError.getMessage());
-            }
-            
             String inventoryEvent = String.format(
-                "{\"orderId\": \"%s\", \"status\": \"failed\", \"details\": \"Erro no processamento: %s\"}", 
+                "{\"orderId\": \"%s\", \"status\": \"failed\", \"details\": \"%s\"}", 
                 orderId, e.getMessage()
             );
             kafkaTemplate.send("inventory-events", inventoryEvent);
+            
+            throw new RuntimeException("Falha no processamento do pedido: " + orderId, e);
         }
     }
 

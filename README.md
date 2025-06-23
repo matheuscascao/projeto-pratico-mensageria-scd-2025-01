@@ -67,9 +67,10 @@ docker exec -it kafka bash
 
 Crie os tópicos:
 
-````bash
+```bash
 kafka-topics --create --topic orders --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 kafka-topics --create --topic inventory-events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+```
 
 ---
 
@@ -81,7 +82,7 @@ kafka-topics --create --topic inventory-events --bootstrap-server localhost:9092
 cd order-service
 mvn clean
 mvn spring-boot:run
-````
+```
 
 ---
 
@@ -179,15 +180,7 @@ curl -X POST http://localhost:8080/orders \
 
 ## Resposta dos RNFs
 
-# 3. Idempotência
-
-Idempotência é a característica de que, quando uma operação ocorre repetidas vezes, com as mesmas entradas, produz o mesmo resultado de uma execução única.
-
-- No cenário atual, poderia ser implementada em diversas camadas. Na camada de orders, o client poderia enviar algum id único para que a API não reprocessasse o mesmo pedido mais de uma vez do mesmo client.
-- Na camada de orders e inventory, o id da mensagem é utilizado para garantir essa característica.
-- Como a chave é feita com base na mensagem e no timestamp, caso a mesma mensagem seja enviada no mesmo momento do tempo, é barrada.
-
-# 1. Escalabilidade
+## 1. Escalabilidade
 
 ## **Estratégias de Escalabilidade com Kafka**
 
@@ -215,9 +208,7 @@ O Kafka permite escalar horizontalmente de forma eficiente. Basta adicionar mais
 
 É a capacidade do sistema **continuar funcionando** mesmo quando componentes falham (brokers, consumidores, rede, etc).
 
-## **Tolerância à Falha no Kafka**
-
-## **Cenário de Falha Comum**
+## **Tolerância à Falha no Kafka - Cenário de Falha Comum**
 
 ### **Situação**: Broker Principal Falha
 
@@ -260,3 +251,11 @@ Automático:
 - **Sincroniza dados perdidos**
 - **Volta a participar do cluster**
 - **Load balancing automático**
+
+## 3. Idempotência
+
+Idempotência é a característica de que, quando uma operação ocorre repetidas vezes, com as mesmas entradas, produz o mesmo resultado de uma execução única.
+
+- No cenário atual, poderia ser implementada em diversas camadas. Na camada de orders, o client poderia enviar algum id único para que a API não reprocessasse o mesmo pedido mais de uma vez do mesmo client.
+- Na camada de orders e inventory, o id da mensagem é utilizado para garantir essa característica.
+- Como a chave é feita com base na mensagem e no timestamp, caso a mesma mensagem seja enviada no mesmo momento do tempo, é barrada.

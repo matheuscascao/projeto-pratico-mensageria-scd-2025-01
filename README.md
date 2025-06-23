@@ -164,3 +164,86 @@ curl -X POST http://localhost:8080/orders \
    Notificação do evento de inventário
 
 4. No banco de dados, deve-se observar uma redução no "quantity" de cada item, na tabela items.
+
+## Resposta dos RNFs
+
+# 3. Idempotência
+
+Idempotência é a característica de que, quando uma operação ocorre repetidas vezes, com as mesmas entradas, produz o mesmo resultado de uma execução única.
+
+- No cenário atual, poderia ser implementada em diversas camadas. Na camada de orders, o client poderia enviar algum id único para que a API não reprocessasse o mesmo pedido mais de uma vez do mesmo client.
+- Na camada de orders e inventory, o id da mensagem poderia ser utilizado para garantir essa característica.
+
+# 1. Escalabilidade
+
+## **Estratégias de Escalabilidade com Kafka**
+
+### **1. Escalabilidade Horizontal**
+
+- **Vários Brokers**: Adicionar mais brokers ao cluster Kafka (por exemplo: kafka1, kafka2, kafka3).
+- **Partições**: Criar tópicos com múltiplas partições (ex: 6 partições).
+- **Replicação**: Definir um fator de replicação adequado para garantir tolerância a falhas.
+
+### **2. Escalabilidade dos Consumidores**
+
+- **Múltiplas Instâncias**: Executar várias instâncias do serviço, como `inventory-service`.
+- **Grupos de Consumidores**: Consumidores com o mesmo `group-id` compartilham a carga automaticamente.
+- **Processamento Paralelo**: Cada instância consome partições diferentes do tópico.
+
+## **Resultados:**
+
+- **Escalabilidade linear**: Dobrar o número de brokers tende a dobrar a vazão.
+- **Tolerância a falhas**: O sistema continua operando mesmo com falhas em brokers ou consumidores.
+- **Distribuição de carga**: As mensagens são distribuídas automaticamente entre as partições.
+
+O Kafka permite escalar horizontalmente de forma eficiente. Basta adicionar mais brokers/consumidores para aumentar o throughput do sistema.
+
+# 2. Tolerância à falha
+
+É a capacidade do sistema **continuar funcionando** mesmo quando componentes falham (brokers, consumidores, rede, etc).
+
+## **Tolerância à Falha no Kafka**
+
+## **Cenário de Falha Comum**
+
+### **Situação**: Broker Principal Falha
+
+```
+Cluster inicial:
+- kafka1 (líder da partição orders-0) FALHA
+- kafka2 (réplica da partição orders-0) OK
+- kafka3 (réplica da partição orders-0) OK
+``
+
+## **Como o broker (Kafka) trata a falha**
+
+### **1. Eleição de Novo Líder**
+```
+
+Automático:
+
+```
+- kafka1 com falha (ex-líder)
+- kafka2 OK (NOVO LÍDER)
+- kafka3 OK (réplica)
+```
+
+### **2. Sem Perda de Dados**
+
+- **Replicação**: Mensagens já enviadas estão seguras em kafka2 e kafka3
+- **Consumidores**: Inventory Service continua processando normalmente
+
+## **Na prática:**
+
+**Durante falha do kafka1:**
+
+- **Orders continuam sendo aceitos** (redirecionados para kafka2)
+- **Inventory Service continua processando**
+- **Nenhum pedido é perdido**
+- **Usuário nem percebe a falha**
+
+**Quando kafka1 volta:**
+
+- **Sincroniza dados perdidos**
+- **Volta a participar do cluster**
+- **Load balancing automático**

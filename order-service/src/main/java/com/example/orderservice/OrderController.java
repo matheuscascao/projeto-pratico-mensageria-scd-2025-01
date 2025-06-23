@@ -23,21 +23,13 @@ public class OrderController {
     public ResponseEntity<String> createOrder(@RequestBody OrderRequest orderRequest) {
         String orderId = UUID.randomUUID().toString();
         String timestamp = Instant.now().toString();
-        
-        // Cria entidade Order
-        Order order = new Order(orderId, timestamp);
-        
-        // Adiciona itens ao pedido
-        for (ItemRequest itemRequest : orderRequest.getItems()) {
-            Item item = new Item(itemRequest.getName(), itemRequest.getSku(), itemRequest.getQuantity());
-            order.addItem(item);
-        }
-        
-        // Salva no banco de dados
-        orderRepository.save(order);
-        
         String message = String.format("{\"orderId\": \"%s\", \"timestamp\": \"%s\", \"items\": %s}", 
                 orderId, timestamp, orderRequest.getItems());
+        
+        // Salva no banco de dados
+        Order order = new Order(orderId, timestamp, message);
+        orderRepository.save(order);
+        
         kafkaTemplate.send("orders", message);
         
         return ResponseEntity.ok("Order enviado com sucesso! ID: " + orderId);
@@ -45,13 +37,13 @@ public class OrderController {
 }
 
 class OrderRequest {
-    private List<ItemRequest> items;
+    private List<String> items;
     
-    public List<ItemRequest> getItems() { 
+    public List<String> getItems() { 
         return items; 
     }
     
-    public void setItems(List<ItemRequest> items) { 
+    public void setItems(List<String> items) { 
         this.items = items; 
     }
 }

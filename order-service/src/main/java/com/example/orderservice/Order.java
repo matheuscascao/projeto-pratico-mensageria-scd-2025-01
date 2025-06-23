@@ -1,9 +1,6 @@
 package com.ufg.orderservice;
 
 import jakarta.persistence.*;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -15,20 +12,15 @@ public class Order {
     @Column(nullable = false)
     private String timestamp;
     
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Item> items = new ArrayList<>();
+    @Column(columnDefinition = "TEXT")
+    private String message;
     
     public Order() {}
     
-    public Order(String orderId, String timestamp) {
+    public Order(String orderId, String timestamp, String message) {
         this.orderId = orderId;
         this.timestamp = timestamp;
-    }
-    
-    // Método auxiliar para adicionar itens
-    public void addItem(Item item) {
-        items.add(item);
-        item.setOrder(this);
+        this.message = message;
     }
     
     public String getOrderId() {
@@ -47,11 +39,11 @@ public class Order {
         this.timestamp = timestamp;
     }
     
-    public List<Item> getItems() {
-        return items;
+    public String getMessage() {
+        return message;
     }
     
-    public void setItems(List<Item> items) {
-        this.items = items;
+    public void setMessage(String message) {
+        this.message = message;
     }
 } 

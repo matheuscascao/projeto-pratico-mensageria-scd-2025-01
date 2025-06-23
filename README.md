@@ -172,7 +172,8 @@ curl -X POST http://localhost:8080/orders \
 Idempotência é a característica de que, quando uma operação ocorre repetidas vezes, com as mesmas entradas, produz o mesmo resultado de uma execução única.
 
 - No cenário atual, poderia ser implementada em diversas camadas. Na camada de orders, o client poderia enviar algum id único para que a API não reprocessasse o mesmo pedido mais de uma vez do mesmo client.
-- Na camada de orders e inventory, o id da mensagem poderia ser utilizado para garantir essa característica.
+- Na camada de orders e inventory, o id da mensagem é utilizado para garantir essa característica.
+- Como a chave é feita com base na mensagem e no timestamp, caso a mesma mensagem seja enviada no mesmo momento do tempo, é barrada.
 
 # 1. Escalabilidade
 

@@ -18,6 +18,9 @@ public class InventoryConsumer {
     @Autowired
     private ItemRepository itemRepository;
     
+    @Autowired
+    private ProcessedMessageRepository processedMessageRepository;
+    
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @KafkaListener(topics = "orders", groupId = "inventory-group")
@@ -28,6 +31,11 @@ public class InventoryConsumer {
             JsonNode orderJson = objectMapper.readTree(message);
             String orderId = orderJson.get("orderId").asText();
             JsonNode itemsArray = orderJson.get("items");
+            
+            if (processedMessageRepository.existsById(orderId)) {
+                System.out.println("Pedido já processado (idempotência): " + orderId);
+                return; // Pula o processamento
+            }
             
             boolean allItemsAvailable = true;
             StringBuilder errorMessage = new StringBuilder();
@@ -71,6 +79,9 @@ public class InventoryConsumer {
                 System.out.println("Falha no inventário para pedido: " + orderId + " - " + details);
             }
             
+            ProcessedMessage processedMessage = new ProcessedMessage(orderId, status, details);
+            processedMessageRepository.save(processedMessage);
+            
             String inventoryEvent = String.format(
                 "{\"orderId\": \"%s\", \"status\": \"%s\", \"details\": \"%s\"}", 
                 orderId, status, details
@@ -82,6 +93,15 @@ public class InventoryConsumer {
         } catch (Exception e) {
             System.err.println("Erro ao processar pedido: " + e.getMessage());
             String orderId = extractOrderId(message);
+            
+            try {
+                ProcessedMessage processedMessage = new ProcessedMessage(orderId, "failed", 
+                    "Erro no processamento: " + e.getMessage());
+                processedMessageRepository.save(processedMessage);
+            } catch (Exception saveError) {
+                System.err.println("Erro ao salvar processamento: " + saveError.getMessage());
+            }
+            
             String inventoryEvent = String.format(
                 "{\"orderId\": \"%s\", \"status\": \"failed\", \"details\": \"Erro no processamento: %s\"}", 
                 orderId, e.getMessage()

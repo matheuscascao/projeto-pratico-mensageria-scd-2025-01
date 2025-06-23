@@ -25,14 +25,20 @@ public class OrderController {
         String messageContent = orderRequest.toString();
         String orderId = generateOrderId(timestamp, messageContent);
         
-        String message = String.format("{\"orderId\": \"%s\", \"timestamp\": \"%s\", \"items\": %s}", 
-                orderId, timestamp, orderRequest.getItems());
+        // Verifica idempotência por orderId (se já existe)
+        if (orderRepository.existsById(orderId)) {
+            return ResponseEntity.ok("Order já processado! ID: " + orderId);
+        }
+        
+        String message = String.format(
+            "{\"orderId\": \"%s\", \"timestamp\": \"%s\", \"items\": %s}", 
+            orderId, timestamp, orderRequest.getItems());
         
         // Salva no banco de dados
         Order order = new Order(orderId, timestamp, message);
         orderRepository.save(order);
         
-        kafkaTemplate.send("orders", message);
+        kafkaTemplate.send("orders", orderId, message);
         
         return ResponseEntity.ok("Order enviado com sucesso! ID: " + orderId);
     }

@@ -178,6 +178,10 @@ curl -X POST http://localhost:8080/orders \
 
 4. No banco de dados, deve-se observar uma redução no "quantity" de cada item, na tabela items.
 
+## Diagramas
+
+### [Diagrama de classes](https://www.mermaidchart.com/app/projects/baff7f3b-4652-46d8-8702-435fd20b5dc5/diagrams/f47c6d45-e71f-4663-8746-761b165201ab/version/v0.1/edit), [Diagrama de sequência](https://www.mermaidchart.com/app/projects/baff7f3b-4652-46d8-8702-435fd20b5dc5/diagrams/7af6bd9a-9b3e-4927-8bef-abe766c70234/version/v0.1/edit) e [Diagrama de Caso de Uso](https://www.mermaidchart.com/app/projects/baff7f3b-4652-46d8-8702-435fd20b5dc5/diagrams/b409cddc-fa4e-4cdf-a8bf-6faf3116e295/version/v0.1/edit)
+
 ## Resposta dos RNFs
 
 ## 1. Escalabilidade

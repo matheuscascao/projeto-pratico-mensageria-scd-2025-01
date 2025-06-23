@@ -5,9 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/orders")
@@ -21,8 +21,10 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<String> createOrder(@RequestBody OrderRequest orderRequest) {
-        String orderId = UUID.randomUUID().toString();
         String timestamp = Instant.now().toString();
+        String messageContent = orderRequest.toString();
+        String orderId = generateOrderId(timestamp, messageContent);
+        
         String message = String.format("{\"orderId\": \"%s\", \"timestamp\": \"%s\", \"items\": %s}", 
                 orderId, timestamp, orderRequest.getItems());
         
@@ -34,32 +36,49 @@ public class OrderController {
         
         return ResponseEntity.ok("Order enviado com sucesso! ID: " + orderId);
     }
+    
+    private String generateOrderId(String timestamp, String message) {
+        try {
+            String input = timestamp + message;
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hash = md.digest(input.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            
+            return timestamp.replaceAll("[^0-9]", "").substring(0, 8) + "-" + hexString.toString().substring(0, 8);
+        } catch (Exception e) {
+            return timestamp.replaceAll("[^0-9]", "").substring(0, 8) + "-fallback";
+        }
+    }
 }
 
 class OrderRequest {
-    private List<String> items;
+    private List<ItemRequest> items;
     
-    public List<String> getItems() { 
+    public List<ItemRequest> getItems() { 
         return items; 
     }
     
-    public void setItems(List<String> items) { 
+    public void setItems(List<ItemRequest> items) { 
         this.items = items; 
+    }
+    
+    @Override
+    public String toString() {
+        return items.toString();
     }
 }
 
 class ItemRequest {
-    private String name;
     private String sku;
     private Integer quantity;
-    
-    public String getName() {
-        return name;
-    }
-    
-    public void setName(String name) {
-        this.name = name;
-    }
     
     public String getSku() {
         return sku;
@@ -75,6 +94,11 @@ class ItemRequest {
     
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+    
+    @Override
+    public String toString() {
+        return "{\"sku\":\"" + sku + "\",\"quantity\":" + quantity + "}";
     }
 }
         

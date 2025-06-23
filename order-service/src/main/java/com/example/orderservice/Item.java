@@ -19,10 +19,6 @@ public class Item {
     @Column(nullable = false)
     private Integer quantity;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
-    
     public Item() {}
     
     public Item(String name, String sku, Integer quantity) {
@@ -61,13 +57,5 @@ public class Item {
     
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
-    }
-    
-    public Order getOrder() {
-        return order;
-    }
-    
-    public void setOrder(Order order) {
-        this.order = order;
     }
 } 

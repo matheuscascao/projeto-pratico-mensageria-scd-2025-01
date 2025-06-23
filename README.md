@@ -29,6 +29,16 @@ Simulamos uma arquitetura de **microserviços distribuídos com mensageria**, us
 
 ## ✅ Passo a passo de execução:
 
+### Atalho:
+
+Para simplificar o processo, utilize o shell script "setup_inicial.sh", responsável por iniciar o compose e já criar os tópicos no Kafka.
+
+```bash
+./setup_inicial.sh
+```
+
+Com isso, pode pular os passos 1 e 2.
+
 ### 🚩 1. Subir o Apache Kafka via Docker
 
 No terminal, vá até a pasta `docker/` do projeto:
@@ -57,10 +67,9 @@ docker exec -it kafka bash
 
 Crie os tópicos:
 
-```bash
-kafka-topics.sh --create --topic orders --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
-kafka-topics.sh --create --topic inventory-events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
-```
+````bash
+kafka-topics --create --topic orders --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+kafka-topics --create --topic inventory-events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 
 ---
 
@@ -72,7 +81,7 @@ kafka-topics.sh --create --topic inventory-events --bootstrap-server localhost:9
 cd order-service
 mvn clean
 mvn spring-boot:run
-```
+````
 
 ---
 

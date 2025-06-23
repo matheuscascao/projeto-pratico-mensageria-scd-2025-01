@@ -24,7 +24,7 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: postgres
+    container_name: postgres-orders
     environment:
       POSTGRES_DB: orderdb
       POSTGRES_USER: postgres

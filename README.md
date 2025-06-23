@@ -105,7 +105,19 @@ mvn spring-boot:run
 
 ---
 
-### 🚩 4. Testar o sistema usando Postman ou curl:
+### 🚩 4. Testar o sistema:
+
+**Itens disponíveis:**
+| Nome do item | SKU | Quantidade inicial |
+|-----------|----------|----------|
+| Smartphone Samsung | SAMS-001 | 50 |
+| Notebook Dell | DELL-002 | 25 |
+| Mouse Wireless | MOUS-003 | 100 |
+| Teclado Mecânico | TECL-004 | 75 |
+| Monitor 24" | MONI-005 | 30 |
+| Headset Gamer | HEAD-006 | 60 |
+| Webcam HD | WEBC-007 | 40 |
+| Carregador USB-C | CARR-008 | 120 |
 
 **Endpoint:**
 

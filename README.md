@@ -4,6 +4,8 @@
 
 ### 📚 Curso: Bacharelado em Engenharia de Software
 
+### 👥 Participantes: Felipe Moreira Silva (202201689) e Matheus Franco Cascão Costa (202201707)
+
 ---
 
 ## ✅ Resumo do Projeto:

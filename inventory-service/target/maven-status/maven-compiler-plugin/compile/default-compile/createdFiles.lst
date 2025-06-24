@@ -1,1 +1,7 @@
-com\example\inventoryservice\InventoryServiceApplication.class
+com/ufg/inventoryservice/Item.class
+com/ufg/inventoryservice/DataInitializer.class
+com/ufg/inventoryservice/ProcessedMessageRepository.class
+com/ufg/inventoryservice/ItemRepository.class
+com/ufg/inventoryservice/InventoryConsumer.class
+com/ufg/inventoryservice/ProcessedMessage.class
+com/ufg/inventoryservice/InventoryServiceApplication.class

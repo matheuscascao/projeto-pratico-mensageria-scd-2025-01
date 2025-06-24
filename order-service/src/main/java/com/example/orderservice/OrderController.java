@@ -21,12 +21,15 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<String> createOrder(@RequestBody OrderRequest orderRequest) {
+        System.out.println("Pedido recebido com " + orderRequest.getItems().size() + " itens");
+        
         String timestamp = Instant.now().toString();
         String messageContent = orderRequest.toString();
         String orderId = generateOrderId(timestamp, messageContent);
         
         // Verifica idempotência por orderId (se já existe)
         if (orderRepository.existsById(orderId)) {
+            System.out.println("Pedido duplicado detectado com ID: " + orderId);
             return ResponseEntity.ok("Order já processado! ID: " + orderId);
         }
         
@@ -40,6 +43,7 @@ public class OrderController {
         
         kafkaTemplate.send("orders", orderId, message);
         
+        System.out.println("Pedido processado com sucesso com ID: " + orderId);
         return ResponseEntity.ok("Order enviado com sucesso! ID: " + orderId);
     }
     

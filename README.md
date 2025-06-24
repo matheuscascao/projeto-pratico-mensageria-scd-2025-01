@@ -180,7 +180,7 @@ curl -X POST http://localhost:8080/orders \
 
 ## Diagramas
 
-### [Diagrama de classes]
+### Diagrama de classes
 
 ```mermaid
 classDiagram
@@ -328,7 +328,7 @@ classDiagram
     InventoryConsumer "1" -- "1" KafkaTemplate
 ```
 
-### [Diagrama de sequência]
+### Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
@@ -366,7 +366,7 @@ sequenceDiagram
 
 ```
 
-### [Diagrama de Caso de Uso]
+### Diagrama de Caso de Uso
 
 ```mermaid
 C4Context

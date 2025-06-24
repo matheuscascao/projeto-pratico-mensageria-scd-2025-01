@@ -180,7 +180,216 @@ curl -X POST http://localhost:8080/orders \
 
 ## Diagramas
 
-### [Diagrama de classes](https://www.mermaidchart.com/app/projects/baff7f3b-4652-46d8-8702-435fd20b5dc5/diagrams/f47c6d45-e71f-4663-8746-761b165201ab/version/v0.1/edit), [Diagrama de sequência](https://www.mermaidchart.com/app/projects/baff7f3b-4652-46d8-8702-435fd20b5dc5/diagrams/7af6bd9a-9b3e-4927-8bef-abe766c70234/version/v0.1/edit) e [Diagrama de Caso de Uso](https://www.mermaidchart.com/app/projects/baff7f3b-4652-46d8-8702-435fd20b5dc5/diagrams/b409cddc-fa4e-4cdf-a8bf-6faf3116e295/version/v0.1/edit)
+### [Diagrama de classes]
+
+```mermaid
+classDiagram
+    direction LR
+
+    class OrderServiceApplication {
+        +main(String[] args)
+    }
+
+    class OrderController {
+        +createOrder(OrderRequest orderRequest): ResponseEntity<String>
+        -generateOrderId(String timestamp, String message): String
+    }
+
+    class Order {
+        -String orderId
+        -String timestamp
+        -String message
+        +Order()
+        +Order(String orderId, String timestamp, String message)
+        +getOrderId(): String
+        +setOrderId(String orderId): void
+        +getTimestamp(): String
+        +setTimestamp(String timestamp): void
+        +getMessage(): String
+        +setMessage(String message): void
+    }
+
+    class OrderRepository {
+        <<interface>>
+        +JpaRepository<Order, String>
+    }
+
+    class OrderRequest {
+        -List~ItemRequest~ items
+        +getItems(): List~ItemRequest~
+        +setItems(List~ItemRequest~ items): void
+        +toString(): String
+    }
+
+    class ItemRequest {
+        -String sku
+        -Integer quantity
+        +getSku(): String
+        +setSku(String sku): void
+        +getQuantity(): Integer
+        +setQuantity(Integer quantity): void
+        +toString(): String
+    }
+
+    class InventoryServiceApplication {
+        +main(String[] args)
+    }
+
+    class InventoryConsumer {
+        +consume(String message): void
+        -extractOrderId(String message): String
+    }
+
+    class Item {
+        -Long id
+        -String name
+        -String sku
+        -Integer quantity
+        +Item()
+        +Item(String name, String sku, Integer quantity)
+        +getId(): Long
+        +setId(Long id): void
+        +getName(): String
+        +setName(String name): void
+        +getSku(): String
+        +setSku(String sku): void
+        +getQuantity(): Integer
+        +setQuantity(Integer quantity): void
+    }
+
+    class ItemRepository {
+        <<interface>>
+        +JpaRepository<Item, Long>
+        +findBySku(String sku): Optional~Item~
+        +reduceQuantityAtomically(String sku, Integer amount): int
+        +hasEnoughStock(String sku, Integer amount): Boolean
+        +getCurrentQuantity(String sku): Optional~Integer~
+    }
+
+    class DataInitializer {
+        +run(String... args): void
+        -initializeItems(): void
+    }
+
+    class ProcessedMessage {
+        -String orderId
+        -String status
+        -Instant processedAt
+        -String details
+        +ProcessedMessage()
+        +ProcessedMessage(String orderId, String status, String details)
+        +getOrderId(): String
+        +setOrderId(String orderId): void
+        +getStatus(): String
+        +setStatus(String status): void
+        +getProcessedAt(): Instant
+        +setProcessedAt(Instant processedAt): void
+        +getDetails(): String
+        +setDetails(String details): void
+    }
+
+    class ProcessedMessageRepository {
+        <<interface>>
+        +JpaRepository<ProcessedMessage, String>
+        +existsById(String orderId): boolean
+    }
+
+    class NotificationServiceApplication {
+        +main(String[] args)
+    }
+
+    class NotificationConsumer {
+        +consume(String message): void
+    }
+
+    OrderServiceApplication ..> OrderController
+    OrderController ..> OrderRequest
+    OrderController ..> OrderRepository
+    OrderController ..> Order
+    OrderRequest --o ItemRequest
+
+    InventoryServiceApplication ..> DataInitializer
+    InventoryServiceApplication ..> InventoryConsumer
+
+    InventoryConsumer ..> ItemRepository
+    InventoryConsumer ..> ProcessedMessageRepository
+    InventoryConsumer ..> Item
+
+    DataInitializer ..> ItemRepository
+    DataInitializer ..> Item
+
+    NotificationServiceApplication ..> NotificationConsumer
+
+    OrderRepository --|> JpaRepository
+    ItemRepository --|> JpaRepository
+    ProcessedMessageRepository --|> JpaRepository
+
+    OrderController "1" -- "1" KafkaTemplate
+    InventoryConsumer "1" -- "1" KafkaTemplate
+```
+
+[Diagrama de sequência]
+
+```mermaid
+sequenceDiagram
+    participant Cliente
+    participant OrderService
+    participant Kafka
+    participant InventoryService
+    participant NotificationService
+
+    Cliente->>OrderService: POST /orders
+    OrderService->>Kafka: Publica evento "order.created"
+    Kafka->>InventoryService: Consome evento "order.created"
+    InventoryService->>InventoryService: Verifica estoque
+
+    alt Estoque suficiente
+        InventoryService->>Kafka: Publica evento "inventory.reserved"
+    else Estoque insuficiente
+        InventoryService->>Kafka: Publica evento "inventory.failed"
+    end
+
+    alt Order já processado
+        OS-->>Cliente: "Order já processado!"
+    else Novo Pedido
+        OS->>ODB: Salva novo Order
+        activate ODB
+        ODB-->>OS: Confirmação
+        deactivate ODB
+        OS->>Kafka: Envia mensagem "orders" (orderId, items)
+        activate Kafka
+        OS-->>Cliente: "Order enviado com sucesso!"
+    end
+
+    Kafka->>NotificationService: Consome evento de inventário
+    NotificationService->>NotificationService: Envia notificação ao cliente
+
+```
+
+[Diagrama de Caso de Uso]
+
+```mermaid
+C4Context
+    title Diagrama de Caso de Uso do Sistema de Mensageria
+
+    System(inventory_service, "Inventory Service", "Gerencia o estoque de produtos.")
+    SystemDb(order_db, "Banco de Dados de Pedidos", "Armazena informações sobre os pedidos.")
+    System(order_service, "Order Service", "Gerencia a criação e envio de pedidos.")
+    Person(customer, "Cliente")
+    SystemDb(inventory_db, "Banco de Dados de Inventário", "Armazena informações sobre o estoque.")
+    System(notification_service, "Notification Service", "Envia notificações sobre o processamento de pedidos.")
+    SystemQueue(kafka, "Apache Kafka", "Plataforma de streaming de eventos para comunicação assíncrona.")
+
+    Rel(customer, order_service, "Faz Pedido")
+    Rel(order_service, order_db, "Salva Pedido")
+    Rel(order_service, kafka, "Publica 'orders' (Pedido Criado)")
+    Rel(inventory_service, kafka, "Consome 'orders'")
+    Rel(inventory_service, inventory_db, "Verifica e Atualiza Estoque")
+    Rel(inventory_service, inventory_db, "Salva ProcessedMessage para Idempotência")
+    Rel(inventory_service, kafka, "Publica 'inventory-events' (Estoque Atualizado/Falha)")
+    Rel(notification_service, kafka, "Consome 'inventory-events'")
+    Rel(notification_service, customer, "Notifica Cliente (simulado)")
+```
 
 ## Resposta dos RNFs
 
